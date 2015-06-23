@@ -1,0 +1,58 @@
+mongoconnector:
+  build: ../
+  links:
+   - elasticsearch
+   - mongo1
+   - mongo2
+   - mongo3
+  command: mongo-connector -m mongo1:27017 -t elasticsearch:9200 -d elastic_doc_manager
+
+elasticsearch:
+  image: elasticsearch:1.6.0
+
+# these ambassadors are a bit hacky
+# it assumes that we are running it out of the "test" directory
+# not sure if there is a clean way to do this otherwise with docker-compose?
+# (also, any way to do this without ambassadors?)
+
+a1:
+  image: cpuguy83/docker-grand-ambassador
+  volumes:
+    - "/var/run/docker.sock:/var/run/docker.sock"
+  command: "-name test_mongo1_1"
+
+a2:
+  image: cpuguy83/docker-grand-ambassador
+  volumes:
+    - "/var/run/docker.sock:/var/run/docker.sock"
+  command: "-name test_mongo2_1"
+
+a3:
+  image: cpuguy83/docker-grand-ambassador
+  volumes:
+    - "/var/run/docker.sock:/var/run/docker.sock"
+  command: "-name test_mongo3_1"
+
+mongo1:
+  hostname: mongo1
+  image: mongo:3.0.4
+  links:
+   - a2:mongo2
+   - a3:mongo3
+  command: --replSet rs0
+
+mongo2:
+  hostname: mongo2
+  image: mongo:3.0.4
+  links:
+   - a1:mongo1
+   - a3:mongo3
+  command: --replSet rs0
+
+mongo3:
+  hostname: mongo3
+  image: mongo:3.0.4
+  links:
+   - a1:mongo1
+   - a2:mongo2
+  command: --replSet rs0
